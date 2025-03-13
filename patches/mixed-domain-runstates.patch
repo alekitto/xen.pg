@@ -11,7 +11,7 @@ index f148bfbf27..12f6455398 100644
 +	get_runstate_info
  };
  allow dom0_t dom0_t:resource { add remove };
- 
+
 diff --git a/tools/flask/policy/modules/xen.if b/tools/flask/policy/modules/xen.if
 index f7cf7c43c8..499c5ab57d 100644
 --- a/tools/flask/policy/modules/xen.if
@@ -30,16 +30,16 @@ index f2602db1e3..23b124696a 100644
 +++ b/tools/include/xenctrl.h
 @@ -419,6 +419,7 @@ typedef struct xc_core_header {
   */
- 
+
  typedef xen_domctl_getdomaininfo_t xc_domaininfo_t;
 +typedef xen_domctl_runstate_info_t xc_runstate_info_t;
- 
+
  static inline unsigned int dominfo_shutdown_reason(const xc_domaininfo_t *info)
  {
 @@ -1346,6 +1347,11 @@ int xc_domain_get_pod_target(xc_interface *xch,
                               uint64_t *pod_cache_pages,
                               uint64_t *pod_entries);
- 
+
 +#define XENCTRL_HAS_GET_RUNSTATE_INFO 1
 +int xc_get_runstate_info(xc_interface *xch,
 +			 uint32_t domid,
@@ -55,7 +55,7 @@ index 2ddc3f4f42..6446c8fa84 100644
 @@ -1317,6 +1317,22 @@ int xc_vcpu_getinfo(xc_interface *xch,
      return rc;
  }
- 
+
 +int xc_get_runstate_info(xc_interface *xch, uint32_t domid, xc_runstate_info_t *info)
 +{
 +    struct xen_domctl domctl = {
@@ -82,7 +82,7 @@ index 2690f9a923..ba32713bed 100644
 @@ -91,6 +91,18 @@ type domctl_create_config =
      arch: arch_domainconfig;
    }
- 
+
 +type runstateinfo = {
 +  state : int32;
 +  missed_changes: int32;
@@ -99,12 +99,12 @@ index 2690f9a923..ba32713bed 100644
    {
      domid             : domid;
 @@ -250,6 +262,8 @@ external domain_getinfo: handle -> domid -> domaininfo= "stub_xc_domain_getinfo"
- 
+
  external domain_get_vcpuinfo: handle -> int -> int -> vcpuinfo
    = "stub_xc_vcpu_getinfo"
 +external domain_get_runstate_info : handle -> int -> runstateinfo
 +  = "stub_xc_get_runstate_info"
- 
+
  external domain_ioport_permission: handle -> domid -> int -> int -> bool -> unit
    = "stub_xc_domain_ioport_permission"
 diff --git a/tools/ocaml/libs/xc/xenctrl.mli b/tools/ocaml/libs/xc/xenctrl.mli
@@ -114,7 +114,7 @@ index febbe1f6ae..ff20d8f371 100644
 @@ -83,6 +83,18 @@ type domctl_create_config = {
    arch: arch_domainconfig;
  }
- 
+
 +type runstateinfo = {
 +  state : int32;
 +  missed_changes: int32;
@@ -143,39 +143,40 @@ diff --git a/tools/ocaml/libs/xc/xenctrl_stubs.c b/tools/ocaml/libs/xc/xenctrl_s
 index 7cd5a6beaa..0a9d8dd9c4 100644
 --- a/tools/ocaml/libs/xc/xenctrl_stubs.c
 +++ b/tools/ocaml/libs/xc/xenctrl_stubs.c
-@@ -537,6 +537,37 @@ CAMLprim value stub_xc_vcpu_getinfo(value xch_val, value domid, value vcpu)
+@@ -537,6 +537,38 @@ CAMLprim value stub_xc_vcpu_getinfo(value xch_val, value domid, value vcpu)
  	CAMLreturn(result);
  }
- 
-+CAMLprim value stub_xc_get_runstate_info(value xch, value domid)
+
++CAMLprim value stub_xc_get_runstate_info(value xch_val, value domid)
 +{
-+        CAMLparam2(xch, domid);
-+        CAMLlocal1(result);
-+        xc_runstate_info_t info;
-+        int retval;
++    CAMLparam2(xch_val, domid);
++    CAMLlocal1(result);
++    xc_interface *xch = xch_of_val(xch_val);
++    xc_runstate_info_t info;
++    int retval;
 +
-+        retval = xc_get_runstate_info(_H(xch), _D(domid), &info);
-+        if (retval < 0)
-+                failwith_xc(_H(xch));
++    retval = xc_get_runstate_info(xch, Int_val(domid), &info);
++    if (retval < 0)
++        failwith_xc(xch);
 +
-+        /* Store
-+           0 : state (int32)
-+           1 : missed_changes (int32)
-+           2 : state_entry_time (int64)
-+           3-8 : times (int64s)
-+        */
-+        result = caml_alloc_tuple(9);
-+        Store_field(result, 0, caml_copy_int32(info.state));
-+        Store_field(result, 1, caml_copy_int32(info.missed_changes));
-+        Store_field(result, 2, caml_copy_int64(info.state_entry_time));
-+        Store_field(result, 3, caml_copy_int64(info.time[0]));
-+        Store_field(result, 4, caml_copy_int64(info.time[1]));
-+        Store_field(result, 5, caml_copy_int64(info.time[2]));
-+        Store_field(result, 6, caml_copy_int64(info.time[3]));
-+        Store_field(result, 7, caml_copy_int64(info.time[4]));
-+        Store_field(result, 8, caml_copy_int64(info.time[5]));
++    /* Store
++       0 : state (int32)
++       1 : missed_changes (int32)
++       2 : state_entry_time (int64)
++       3-8 : times (int64s)
++    */
++    result = caml_alloc_tuple(9);
++    Store_field(result, 0, caml_copy_int32(info.state));
++    Store_field(result, 1, caml_copy_int32(info.missed_changes));
++    Store_field(result, 2, caml_copy_int64(info.state_entry_time));
++    Store_field(result, 3, caml_copy_int64(info.time[0]));
++    Store_field(result, 4, caml_copy_int64(info.time[1]));
++    Store_field(result, 5, caml_copy_int64(info.time[2]));
++    Store_field(result, 6, caml_copy_int64(info.time[3]));
++    Store_field(result, 7, caml_copy_int64(info.time[4]));
++    Store_field(result, 8, caml_copy_int64(info.time[5]));
 +
-+        CAMLreturn(result);
++    CAMLreturn(result);
 +}
 +
  CAMLprim value stub_xc_vcpu_context_get(value xch_val, value domid,
@@ -200,7 +201,7 @@ index 05abb581a0..8530506841 100644
 @@ -867,6 +867,11 @@ long do_domctl(XEN_GUEST_HANDLE_PARAM(xen_domctl_t) u_domctl)
                  __HYPERVISOR_domctl, "h", u_domctl);
          break;
- 
+
 +    case XEN_DOMCTL_get_runstate_info:
 +        domain_runstate_get(d, &op->u.domain_runstate);
 +        copyback = 1;
@@ -216,7 +217,7 @@ index d6296d99fd..8b3c542f5f 100644
 @@ -260,9 +260,30 @@ static inline void vcpu_urgent_count_update(struct vcpu *v)
      }
  }
- 
+
 +/* Used to quickly map the vcpu runstate mask to a domain runstate */
 +static int mask_to_state[] = {
 +    /* 000: Nothing in any runstate.  Should never happen. */
@@ -243,10 +244,10 @@ index d6296d99fd..8b3c542f5f 100644
 +    struct domain *d = v->domain;
      s_time_t delta;
      struct sched_unit *unit = v->sched_unit;
- 
+
 @@ -288,6 +309,46 @@ static inline void vcpu_runstate_change(
      }
- 
+
      v->runstate.state = new_state;
 +
 +    /* Update domain runstate */
@@ -289,12 +290,12 @@ index d6296d99fd..8b3c542f5f 100644
 +        atomic_inc(&d->runstate_missed_changes);
 +    }
  }
- 
+
  void sched_guest_idle(void (*idle) (void), unsigned int cpu)
 @@ -333,6 +394,20 @@ void vcpu_runstate_get(const struct vcpu *v,
      rcu_read_unlock(&sched_res_rculock);
  }
- 
+
 +void domain_runstate_get(struct domain *d, domain_runstate_info_t *runstate)
 +{
 +    unsigned long flags;
@@ -319,7 +320,7 @@ index e2d392d1e5..e15ff0c88f 100644
 @@ -1226,6 +1226,46 @@ struct xen_domctl_vmtrace_op {
  typedef struct xen_domctl_vmtrace_op xen_domctl_vmtrace_op_t;
  DEFINE_XEN_GUEST_HANDLE(xen_domctl_vmtrace_op_t);
- 
+
 +/*
 + * Return information about the state and running time of a domain.
 + * The "domain runstate" is based on the runstates of all the vcpus of the
@@ -384,9 +385,9 @@ index 2865780c26..4b32770c97 100644
 --- a/xen/include/xen/sched.h
 +++ b/xen/include/xen/sched.h
 @@ -365,6 +365,8 @@ struct evtchn_port_ops;
- 
+
  #define MAX_NR_IOREQ_SERVERS 8
- 
+
 +typedef struct xen_domctl_runstate_info domain_runstate_info_t;
 +
  struct domain
@@ -402,10 +403,10 @@ index 2865780c26..4b32770c97 100644
 +    atomic_t runstate_missed_changes;
 +    domain_runstate_info_t runstate;
  };
- 
+
  static inline struct page_list_head *page_to_list(
 @@ -1091,6 +1098,8 @@ int vcpu_affinity_domctl(struct domain *d, uint32_t cmd,
- 
+
  void vcpu_runstate_get(const struct vcpu *v,
                         struct vcpu_runstate_info *runstate);
 +void domain_runstate_get(struct domain *d, domain_runstate_info_t *runstate);
@@ -420,13 +421,13 @@ index 14d84df9ca..58aab301ff 100644
 @@ -844,6 +844,9 @@ static int cf_check flask_domctl(struct domain *d, unsigned int cmd,
      case XEN_DOMCTL_set_paging_mempool_size:
          return current_has_perm(d, SECCLASS_DOMAIN, DOMAIN__SETPAGINGMEMPOOL);
- 
+
 +    case XEN_DOMCTL_get_runstate_info:
 +        return current_has_perm(d, SECCLASS_DOMAIN2, DOMAIN2__GET_RUNSTATE_INFO);
 +
      case XEN_DOMCTL_dt_overlay:
          return current_has_perm(d, SECCLASS_DOMAIN2, DOMAIN2__DT_OVERLAY);
- 
+
 diff --git a/xen/xsm/flask/policy/access_vectors b/xen/xsm/flask/policy/access_vectors
 index 320d77706d..cacd38f386 100644
 --- a/xen/xsm/flask/policy/access_vectors
