@@ -6,13 +6,13 @@ Factor clear_deep_deps() out of xc_cpuid_apply_policy() so it can be reused.
 Signed-off-by: Andrew Cooper <andrew.cooper3@citrix.com>
 
 diff --git a/tools/libs/guest/xg_cpuid_x86.c b/tools/libs/guest/xg_cpuid_x86.c
-index b403118495dc..0aebcd2ceb5e 100644
+index ac34131538..e3a9308997 100644
 --- a/tools/libs/guest/xg_cpuid_x86.c
 +++ b/tools/libs/guest/xg_cpuid_x86.c
 @@ -36,6 +36,41 @@ enum {
  #define bitmaskof(idx)      (1u << ((idx) & 31))
  #define featureword_of(idx) ((idx) >> 5)
- 
+
 +/*
 + * For each bit clear in @featureset which has dependent features, clear those
 + * too.
@@ -50,9 +50,9 @@ index b403118495dc..0aebcd2ceb5e 100644
 +
  int xc_get_cpu_levelling_caps(xc_interface *xch, uint32_t *caps)
  {
-     DECLARE_SYSCTL;
-@@ -680,10 +715,8 @@ int xc_cpuid_apply_policy(xc_interface *xch, uint32_t domid, bool restore,
- 
+     struct xen_sysctl sysctl = {};
+@@ -664,10 +699,8 @@ int xc_cpuid_apply_policy(xc_interface *xch, uint32_t domid, bool restore,
+
      if ( featureset )
      {
 -        uint32_t disabled_features[FEATURESET_NR_ENTRIES],
@@ -61,13 +61,13 @@ index b403118495dc..0aebcd2ceb5e 100644
 -        unsigned int i, b;
 +        uint32_t feat[FEATURESET_NR_ENTRIES] = {};
 +        unsigned int i;
- 
+
          /*
           * The user supplied featureset may be shorter or longer than
-@@ -700,24 +733,7 @@ int xc_cpuid_apply_policy(xc_interface *xch, uint32_t domid, bool restore,
- 
+@@ -684,24 +717,7 @@ int xc_cpuid_apply_policy(xc_interface *xch, uint32_t domid, bool restore,
+
          memcpy(feat, featureset, sizeof(*featureset) * user_len);
- 
+
 -        /* Disable deep dependencies of disabled features. */
 -        for ( i = 0; i < ARRAY_SIZE(disabled_features); ++i )
 -            disabled_features[i] = ~feat[i] & deep_features[i];
@@ -87,6 +87,6 @@ index b403118495dc..0aebcd2ceb5e 100644
 -            }
 -        }
 +        clear_deep_deps(feat, user_len);
- 
-         x86_cpu_featureset_to_policy(feat, p);
+
+         x86_cpu_featureset_to_policy(feat, &p->policy);
      }

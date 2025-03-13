@@ -10,7 +10,7 @@ CPUID policies are recalculated if there are any CPUID changes.
 Signed-off-by: Sergey Dyasli <sergey.dyasli@citrix.com>
 
 diff --git a/tools/misc/.gitignore b/tools/misc/.gitignore
-index 73ce95e6d77e..7593e2e92425 100644
+index 73ce95e6d7..7593e2e924 100644
 --- a/tools/misc/.gitignore
 +++ b/tools/misc/.gitignore
 @@ -1,5 +1,6 @@
@@ -21,10 +21,10 @@ index 73ce95e6d77e..7593e2e92425 100644
  xen-ucode
  xen-vmtrace
 diff --git a/tools/misc/Makefile b/tools/misc/Makefile
-index 07e9aa6814c1..8f2aa6ed62e6 100644
+index c26e544e83..60fe9aa3ea 100644
 --- a/tools/misc/Makefile
 +++ b/tools/misc/Makefile
-@@ -24,6 +24,7 @@ INSTALL_SBIN-$(CONFIG_X86)     += xen-lowmemd
+@@ -23,6 +23,7 @@ INSTALL_SBIN-$(CONFIG_X86)     += xen-lowmemd
  INSTALL_SBIN-$(CONFIG_X86)     += xen-mceinj
  INSTALL_SBIN-$(CONFIG_X86)     += xen-memshare
  INSTALL_SBIN-$(CONFIG_X86)     += xen-mfndump
@@ -32,7 +32,7 @@ index 07e9aa6814c1..8f2aa6ed62e6 100644
  INSTALL_SBIN-$(CONFIG_X86)     += xen-ucode
  INSTALL_SBIN-$(CONFIG_X86)     += xen-vmtrace
  INSTALL_SBIN                   += xencov
-@@ -138,4 +139,7 @@ xencov: xencov.o
+@@ -130,4 +131,7 @@ xencov: xencov.o
  xen-ucode: xen-ucode.o
  	$(CC) $(LDFLAGS) -o $@ $< $(LDLIBS_libxenctrl) $(APPEND_LDFLAGS)
  
@@ -42,7 +42,7 @@ index 07e9aa6814c1..8f2aa6ed62e6 100644
  -include $(DEPS_INCLUDE)
 diff --git a/tools/misc/xen-spec-ctrl.c b/tools/misc/xen-spec-ctrl.c
 new file mode 100644
-index 000000000000..d46778eca989
+index 0000000000..d46778eca9
 --- /dev/null
 +++ b/tools/misc/xen-spec-ctrl.c
 @@ -0,0 +1,60 @@
@@ -107,15 +107,15 @@ index 000000000000..d46778eca989
 +    return 0;
 +}
 diff --git a/xen/arch/x86/cpu-policy.c b/xen/arch/x86/cpu-policy.c
-index 68a70e08decf..6c0d3919b62e 100644
+index 060b34d913..2958b87d53 100644
 --- a/xen/arch/x86/cpu-policy.c
 +++ b/xen/arch/x86/cpu-policy.c
-@@ -17,26 +17,26 @@
+@@ -18,26 +18,26 @@
  #include <asm/xstate.h>
  
  struct cpu_policy __read_mostly       raw_cpu_policy;
 -struct cpu_policy __ro_after_init    host_cpu_policy;
-+struct cpu_policy __read_mostly      host_cpu_policy;
++struct cpu_policy __read_mostly       host_cpu_policy;
  #ifdef CONFIG_PV
 -struct cpu_policy __ro_after_init  pv_max_cpu_policy;
 -struct cpu_policy __ro_after_init  pv_def_cpu_policy;
@@ -147,7 +147,7 @@ index 68a70e08decf..6c0d3919b62e 100644
      INIT_HVM_HAP_DEF_FEATURES;
  static const uint32_t deep_features[] = INIT_DEEP_FEATURES;
  
-@@ -373,7 +373,7 @@ void calculate_raw_cpu_policy(void)
+@@ -353,7 +353,7 @@ void calculate_raw_cpu_policy(void)
      /* Was already added by probe_cpuid_faulting() */
  }
  
@@ -156,7 +156,7 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      struct cpu_policy *p = &host_cpu_policy;
      unsigned int max_extd_leaf;
-@@ -431,7 +431,7 @@ static void __init calculate_host_policy(void)
+@@ -398,7 +398,7 @@ static void __init calculate_host_policy(void)
   * - Some incoming VMs have a larger-than-necessary feat max_subleaf.
   * - Some VMs we'd like to synthesise leaves not present on the host.
   */
@@ -165,7 +165,7 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      p->basic.max_leaf       = ARRAY_SIZE(p->basic.raw) - 1;
      p->feat.max_subleaf     = ARRAY_SIZE(p->feat.raw) - 1;
-@@ -439,14 +439,14 @@ static void __init guest_common_max_leaves(struct cpu_policy *p)
+@@ -406,14 +406,14 @@ static void __init guest_common_max_leaves(struct cpu_policy *p)
  }
  
  /* Guest default policies inherit the host max leaf/subleaf settings. */
@@ -182,7 +182,7 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      if ( boot_cpu_data.x86_vendor == X86_VENDOR_INTEL )
      {
-@@ -522,7 +522,7 @@ static void __init guest_common_max_feature_adjustments(uint32_t *fs)
+@@ -489,7 +489,7 @@ static void __init guest_common_max_feature_adjustments(uint32_t *fs)
          __set_bit(X86_FEATURE_RTM_ALWAYS_ABORT, fs);
  }
  
@@ -191,7 +191,7 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      if ( boot_cpu_data.x86_vendor == X86_VENDOR_INTEL )
      {
-@@ -602,7 +602,7 @@ static void __init guest_common_default_feature_adjustments(uint32_t *fs)
+@@ -569,7 +569,7 @@ static void __init guest_common_default_feature_adjustments(uint32_t *fs)
      }
  }
  
@@ -200,7 +200,7 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      /* Unconditionally claim to be able to set the hypervisor bit. */
      __set_bit(X86_FEATURE_HYPERVISOR, fs);
-@@ -626,7 +626,7 @@ static void __init guest_common_feature_adjustments(uint32_t *fs)
+@@ -593,7 +593,7 @@ static void __init guest_common_feature_adjustments(uint32_t *fs)
          __set_bit(X86_FEATURE_IBPB, fs);
  }
  
@@ -209,7 +209,7 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      struct cpu_policy *p = &pv_max_cpu_policy;
      uint32_t fs[FSCAPINTS];
-@@ -707,7 +707,7 @@ static void __init calculate_pv_def_policy(void)
+@@ -694,7 +694,7 @@ static void __init calculate_pv_def_policy(void)
      recalculate_xstate(p);
  }
  
@@ -218,17 +218,17 @@ index 68a70e08decf..6c0d3919b62e 100644
  {
      struct cpu_policy *p = &hvm_max_cpu_policy;
      uint32_t fs[FSCAPINTS];
-@@ -854,7 +854,7 @@ static void __init calculate_hvm_def_policy(void)
+@@ -863,7 +863,7 @@ static void __init calculate_hvm_def_policy(void)
      recalculate_xstate(p);
  }
  
 -void __init init_guest_cpu_policies(void)
 +void init_guest_cpu_policies(void)
  {
-     calculate_raw_cpu_policy();
      calculate_host_policy();
+ 
 diff --git a/xen/arch/x86/cpu/amd.c b/xen/arch/x86/cpu/amd.c
-index 2838725bab98..1aaf1625a474 100644
+index 597b0f073d..3108d27caa 100644
 --- a/xen/arch/x86/cpu/amd.c
 +++ b/xen/arch/x86/cpu/amd.c
 @@ -52,7 +52,7 @@ boolean_param("allow_unsafe", opt_allow_unsafe);
@@ -241,10 +241,10 @@ index 2838725bab98..1aaf1625a474 100644
  static bool __read_mostly fam17_c6_disabled;
  
 diff --git a/xen/arch/x86/cpu/common.c b/xen/arch/x86/cpu/common.c
-index 3752861f5bad..90797d5ee6eb 100644
+index 067d855bad..098e93f2f0 100644
 --- a/xen/arch/x86/cpu/common.c
 +++ b/xen/arch/x86/cpu/common.c
-@@ -626,6 +626,139 @@ void identify_cpu(struct cpuinfo_x86 *c)
+@@ -625,6 +625,139 @@ void identify_cpu(struct cpuinfo_x86 *c)
  	setup_doitm();
  }
  
@@ -385,10 +385,10 @@ index 3752861f5bad..90797d5ee6eb 100644
  #define SMT_LEVEL       0
  
 diff --git a/xen/arch/x86/include/asm/processor.h b/xen/arch/x86/include/asm/processor.h
-index 7925e6b911f2..952debf67949 100644
+index d247ef8dd2..cad090de36 100644
 --- a/xen/arch/x86/include/asm/processor.h
 +++ b/xen/arch/x86/include/asm/processor.h
-@@ -593,6 +593,8 @@ void tsx_init(void);
+@@ -512,6 +512,8 @@ static inline void tsx_init(void) {}
  void update_mcu_opt_ctrl(void);
  void set_in_mcu_opt_ctrl(uint32_t mask, uint32_t val);
  
@@ -398,10 +398,10 @@ index 7925e6b911f2..952debf67949 100644
      AP_BOOT_NORMAL,
      AP_BOOT_SKINIT,
 diff --git a/xen/arch/x86/sysctl.c b/xen/arch/x86/sysctl.c
-index 42dc360ad6e9..fd5a498d521b 100644
+index 1b04947516..945b8b470b 100644
 --- a/xen/arch/x86/sysctl.c
 +++ b/xen/arch/x86/sysctl.c
-@@ -424,6 +424,33 @@ long arch_do_sysctl(
+@@ -425,6 +425,33 @@ long arch_do_sysctl(
          break;
      }
  
@@ -436,10 +436,10 @@ index 42dc360ad6e9..fd5a498d521b 100644
          ret = -ENOSYS;
          break;
 diff --git a/xen/arch/x86/xstate.c b/xen/arch/x86/xstate.c
-index 8a636c6e800a..e27b1a0d3b87 100644
+index af9e345a7a..831cd852aa 100644
 --- a/xen/arch/x86/xstate.c
 +++ b/xen/arch/x86/xstate.c
-@@ -667,6 +667,7 @@ void xstate_init(struct cpuinfo_x86 *c)
+@@ -897,6 +897,7 @@ void xstate_init(struct cpuinfo_x86 *c)
  
      if ( bsp )
      {
@@ -448,10 +448,10 @@ index 8a636c6e800a..e27b1a0d3b87 100644
          /*
           * xsave_cntxt_size is the max size required by enabled features.
 diff --git a/xen/include/public/sysctl.h b/xen/include/public/sysctl.h
-index ef4f364a74ff..db3422198c30 100644
+index b0fec271d3..054529b3b5 100644
 --- a/xen/include/public/sysctl.h
 +++ b/xen/include/public/sysctl.h
-@@ -1052,6 +1052,11 @@ typedef struct xen_sysctl_cpu_policy xen_sysctl_cpu_policy_t;
+@@ -1194,6 +1194,11 @@ typedef struct xen_sysctl_cpu_policy xen_sysctl_cpu_policy_t;
  DEFINE_XEN_GUEST_HANDLE(xen_sysctl_cpu_policy_t);
  #endif
  
@@ -460,20 +460,20 @@ index ef4f364a74ff..db3422198c30 100644
 +    uint32_t op;      /* IN */
 +};
 +
- struct xen_sysctl {
-     uint32_t cmd;
- #define XEN_SYSCTL_readconsole                    1
-@@ -1082,6 +1087,7 @@ struct xen_sysctl {
- #define XEN_SYSCTL_livepatch_op                  27
+ #if defined(__arm__) || defined(__aarch64__)
+ /*
+  * XEN_SYSCTL_dt_overlay
+@@ -1241,6 +1246,7 @@ struct xen_sysctl {
  /* #define XEN_SYSCTL_set_parameter              28 */
  #define XEN_SYSCTL_get_cpu_policy                29
+ #define XEN_SYSCTL_dt_overlay                    30
 +#define XEN_SYSCTL_spec_ctrl                    188
      uint32_t interface_version; /* XEN_SYSCTL_INTERFACE_VERSION */
      union {
          struct xen_sysctl_readconsole       readconsole;
-@@ -1112,6 +1118,7 @@ struct xen_sysctl {
- #if defined(__i386__) || defined(__x86_64__)
-         struct xen_sysctl_cpu_policy        cpu_policy;
+@@ -1275,6 +1281,7 @@ struct xen_sysctl {
+ #if defined(__arm__) || defined(__aarch64__)
+         struct xen_sysctl_dt_overlay        dt_overlay;
  #endif
 +        struct xen_sysctl_spec_ctrl         spec_ctrl;
          uint8_t                             pad[128];

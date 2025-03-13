@@ -1,19 +1,19 @@
 diff --git a/xen/common/sched/credit.c b/xen/common/sched/credit.c
-index 4d3bd8cba6fc..5ec94178b1b6 100644
+index a6bb321e7d..bc8461584f 100644
 --- a/xen/common/sched/credit.c
 +++ b/xen/common/sched/credit.c
-@@ -225,6 +225,7 @@ struct csched_private {
+@@ -231,6 +231,7 @@ struct csched_private {
      uint32_t credit;
      int credit_balance;
      unsigned int credits_per_tslice;
 +    struct csched_dom * privdom;
- 
+
      unsigned int master;
      struct timer master_ticker;
-@@ -864,6 +865,62 @@ csched_res_pick(const struct scheduler *ops, const struct sched_unit *unit)
+@@ -884,6 +885,62 @@ csched_res_pick(const struct scheduler *ops, const struct sched_unit *unit)
      return get_sched_res(_csched_cpu_pick(ops, unit, true));
  }
- 
+
 +/* Make sure that the privileged domain always has enough weight for its active
 + * vcpus to get one full pcpu each */
 +static inline void __csched_adj_privdom_weight(struct csched_private *prv) {
@@ -73,7 +73,7 @@ index 4d3bd8cba6fc..5ec94178b1b6 100644
  static inline void
  __csched_unit_acct_start(struct csched_private *prv, struct csched_unit *svc)
  {
-@@ -885,6 +942,16 @@ __csched_unit_acct_start(struct csched_private *prv, struct csched_unit *svc)
+@@ -905,6 +962,16 @@ __csched_unit_acct_start(struct csched_private *prv, struct csched_unit *svc)
          {
              list_add(&sdom->active_sdom_elem, &prv->active_sdom);
          }
@@ -88,37 +88,37 @@ index 4d3bd8cba6fc..5ec94178b1b6 100644
 +
 +        __csched_adj_privdom_weight(prv);
      }
- 
-     TRACE_3D(TRC_CSCHED_ACCOUNT_START, sdom->dom->domain_id,
-@@ -913,6 +980,7 @@ __csched_unit_acct_stop_locked(struct csched_private *prv,
+
+     TRACE_TIME(TRC_CSCHED_ACCOUNT_START, sdom->dom->domain_id,
+@@ -933,6 +1000,7 @@ __csched_unit_acct_stop_locked(struct csched_private *prv,
          list_del_init(&sdom->active_sdom_elem);
      }
- 
+
 +    __csched_adj_privdom_weight(prv);
-     TRACE_3D(TRC_CSCHED_ACCOUNT_STOP, sdom->dom->domain_id,
-              svc->unit->unit_id, sdom->active_unit_count);
+     TRACE_TIME(TRC_CSCHED_ACCOUNT_STOP, sdom->dom->domain_id,
+                svc->unit->unit_id, sdom->active_unit_count);
  }
-@@ -1194,6 +1262,8 @@ csched_dom_cntl(
+@@ -1213,6 +1281,8 @@ csched_dom_cntl(
                  prv->weight += op->u.credit.weight * sdom->active_unit_count;
              }
              sdom->weight = op->u.credit.weight;
 +
 +            __csched_adj_privdom_weight(prv);
          }
- 
+
          if ( op->u.credit.cap != (uint16_t)~0U )
-@@ -1283,6 +1353,7 @@ csched_sys_cntl(const struct scheduler *ops,
+@@ -1302,6 +1372,7 @@ csched_sys_cntl(const struct scheduler *ops,
  static void *cf_check
  csched_alloc_domdata(const struct scheduler *ops, struct domain *dom)
  {
 +    struct csched_private *prv = CSCHED_PRIV(ops);
      struct csched_dom *sdom;
- 
+
      sdom = xzalloc(struct csched_dom);
-@@ -1295,6 +1366,13 @@ csched_alloc_domdata(const struct scheduler *ops, struct domain *dom)
+@@ -1314,6 +1385,13 @@ csched_alloc_domdata(const struct scheduler *ops, struct domain *dom)
      sdom->dom = dom;
      sdom->weight = CSCHED_DEFAULT_WEIGHT;
- 
+
 +    if ( is_hardware_domain(dom) )
 +    {
 +        printk("%s: setting dom %d as the privileged domain\n",
@@ -128,24 +128,24 @@ index 4d3bd8cba6fc..5ec94178b1b6 100644
 +
      return sdom;
  }
- 
-@@ -1372,6 +1450,7 @@ static void cf_check csched_acct(void* dummy)
+
+@@ -1391,6 +1469,7 @@ static void cf_check csched_acct(void* dummy)
      int credit_balance;
      int credit_xtra;
      int credit;
 +    uint32_t privdom_weight;
- 
- 
+
+
      spin_lock_irqsave(&prv->lock, flags);
-@@ -1400,6 +1479,7 @@ static void cf_check csched_acct(void* dummy)
+@@ -1419,6 +1498,7 @@ static void cf_check csched_acct(void* dummy)
      credit_balance = 0;
      credit_xtra = 0;
      credit_cap = 0U;
 +    privdom_weight = prv->privdom ? prv->privdom->weight : 0;
- 
+
      list_for_each_safe( iter_sdom, next_sdom, &prv->active_sdom )
      {
-@@ -1408,6 +1488,11 @@ static void cf_check csched_acct(void* dummy)
+@@ -1427,6 +1507,11 @@ static void cf_check csched_acct(void* dummy)
          BUG_ON( is_idle_domain(sdom->dom) );
          BUG_ON( sdom->active_unit_count == 0 );
          BUG_ON( sdom->weight == 0 );
@@ -155,5 +155,5 @@ index 4d3bd8cba6fc..5ec94178b1b6 100644
 +            weight_left += (sdom->weight - privdom_weight) * sdom->active_unit_count;
 +
          BUG_ON( (sdom->weight * sdom->active_unit_count) > weight_left );
- 
+
          weight_left -= ( sdom->weight * sdom->active_unit_count );

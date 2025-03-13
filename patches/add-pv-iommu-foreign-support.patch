@@ -1,8 +1,8 @@
 diff --git a/xen/arch/x86/domain.c b/xen/arch/x86/domain.c
-index e546c9832225..c4c247bf291e 100644
+index 78a13e6812..be376afb43 100644
 --- a/xen/arch/x86/domain.c
 +++ b/xen/arch/x86/domain.c
-@@ -2185,6 +2185,9 @@ static int relinquish_memory(
+@@ -2212,6 +2212,9 @@ static int relinquish_memory(
              continue;
          }
  
@@ -13,25 +13,29 @@ index e546c9832225..c4c247bf291e 100644
              ret = put_page_and_type_preemptible(page);
          switch ( ret )
 diff --git a/xen/arch/x86/include/asm/mm.h b/xen/arch/x86/include/asm/mm.h
-index d723c7c38f0e..14694b37f9b5 100644
+index 6c7e66ee21..6c30da5908 100644
 --- a/xen/arch/x86/include/asm/mm.h
 +++ b/xen/arch/x86/include/asm/mm.h
-@@ -87,8 +87,12 @@
- #define _PGC_extra        PG_shift(7)
- #define PGC_extra         PG_mask(1, 7)
+@@ -91,11 +91,15 @@
+ #define PGC_shadowed_pt   0
+ #endif
  
 +/* Page has foreign mappings? */
 +#define _PGC_foreign_map  PG_shift(8)
 +#define PGC_foreign_map   PG_mask(1, 8)
 +
  /* Count of references to this frame. */
+ #if PGC_shadowed_pt
 -#define PGC_count_width   PG_shift(7)
 +#define PGC_count_width   PG_shift(8)
+ #else
+-#define PGC_count_width   PG_shift(6)
++#define PGC_count_width   PG_shift(7)
+ #endif
  #define PGC_count_mask    ((1UL<<PGC_count_width)-1)
  
- /*
 diff --git a/xen/common/pv_iommu.c b/xen/common/pv_iommu.c
-index 329f88b37d2c..fb7822960e54 100644
+index b35d44c4a5..dae7c579e5 100644
 --- a/xen/common/pv_iommu.c
 +++ b/xen/common/pv_iommu.c
 @@ -22,7 +22,11 @@
@@ -46,7 +50,7 @@ index 329f88b37d2c..fb7822960e54 100644
  #define ret_t long
  
  /*
-@@ -201,6 +205,214 @@ void do_iommu_sub_op(struct pv_iommu_op *op)
+@@ -189,6 +193,214 @@ void do_iommu_sub_op(struct pv_iommu_op *op)
              op->status = 0;
              break;
          }
@@ -262,7 +266,7 @@ index 329f88b37d2c..fb7822960e54 100644
              op->status = -ENODEV;
              break;
 diff --git a/xen/include/public/pv-iommu.h b/xen/include/public/pv-iommu.h
-index f598a8feba76..e704a9d62148 100644
+index f598a8feba..e704a9d621 100644
 --- a/xen/include/public/pv-iommu.h
 +++ b/xen/include/public/pv-iommu.h
 @@ -26,6 +26,9 @@
@@ -302,7 +306,7 @@ index f598a8feba76..e704a9d62148 100644
  };
  
 diff --git a/xen/include/xsm/dummy.h b/xen/include/xsm/dummy.h
-index 9a2662db6053..655f03e5843d 100644
+index e8c6545322..b0d5ca80f7 100644
 --- a/xen/include/xsm/dummy.h
 +++ b/xen/include/xsm/dummy.h
 @@ -646,6 +646,13 @@ static XSM_INLINE int cf_check xsm_vm_event_control(
@@ -320,10 +324,10 @@ index 9a2662db6053..655f03e5843d 100644
  static XSM_INLINE int cf_check xsm_mem_access(XSM_DEFAULT_ARG struct domain *d)
  {
 diff --git a/xen/include/xsm/xsm.h b/xen/include/xsm/xsm.h
-index 8dad03fd3d45..7d4567426620 100644
+index 4dbff9d866..0c17a98c34 100644
 --- a/xen/include/xsm/xsm.h
 +++ b/xen/include/xsm/xsm.h
-@@ -119,6 +119,7 @@ struct xsm_ops {
+@@ -118,6 +118,7 @@ struct xsm_ops {
                           uint8_t allow);
      int (*pci_config_permission)(struct domain *d, uint32_t machine_bdf,
                                   uint16_t start, uint16_t end, uint8_t access);
@@ -344,7 +348,7 @@ index 8dad03fd3d45..7d4567426620 100644
  static inline int xsm_mem_access(xsm_default_t def, struct domain *d)
  {
 diff --git a/xen/xsm/dummy.c b/xen/xsm/dummy.c
-index e6ffa948f7c5..f7a6bbfd7843 100644
+index e6ffa948f7..f7a6bbfd78 100644
 --- a/xen/xsm/dummy.c
 +++ b/xen/xsm/dummy.c
 @@ -101,6 +101,7 @@ static const struct xsm_ops __initconst_cf_clobber dummy_ops = {
