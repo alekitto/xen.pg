@@ -42,7 +42,7 @@ index 260294d0ed..9326dc6e19 100644
 +{
 +/* *INDENT-OFF* */
 +    static const struct {
-+        char *name;
++        const char *name;
 +        bool str;
 +    } note_desc[] = {
 +        [XS_ELFNOTE_PV_IOMMU] = { "XS_PV_IOMMU", 0},
