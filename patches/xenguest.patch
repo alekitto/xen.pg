@@ -794,7 +794,7 @@ new file mode 100644
 index 000000000000..3ff6ddbb84d2
 --- /dev/null
 +++ b/tools/xenguest/xenguest_stubs.c
-@@ -0,0 +1,1816 @@
+@@ -0,0 +1,1820 @@
 +/*
 + * Copyright (C) 2006-2009 Citrix Systems Inc.
 + *
@@ -1787,11 +1787,13 @@ index 000000000000..3ff6ddbb84d2
 + */
 +static int hvm_load_firmware_module(struct xc_dom_image *dom)
 +{
++    char *tmp = xenstore_gets("hvmloader/bios");
++#ifdef OVMF_PATH
 +    struct stat st;
 +    struct xc_hvm_firmware_module *m = &dom->system_firmware_module;
-+    char *tmp = xenstore_gets("hvmloader/bios");
 +    char *path = NULL;
 +    int ret, fd;
++#endif
 +
 +    if ( !tmp || !strcmp(tmp, "") )
 +        return 0;
@@ -2378,11 +2380,13 @@ index 000000000000..3ff6ddbb84d2
 +                failwith_oss_xc("xc_dom_module_file");
 +        }
 +    }
++#ifdef IPXE_PATH
 +    else /* HVM */
 +    {
 +        if ( xc_dom_module_file(dom, IPXE_PATH, "ipxe") )
 +            failwith_oss_xc("xc_dom_module_file");
 +    }
++#endif
 +
 +    if ( xc_dom_boot_xen_init(dom, xch, domid) )
 +        failwith_oss_xc("xc_dom_boot_xen_init");
@@ -3060,7 +3064,7 @@ index 000000000000..d45d390c8949
 +#include <xenctrl.h>
 +#include <xenguest.h>
 +#include <xenstore.h>
-+#include <xen-tools/libs.h>
++#include <xen-tools/common-macros.h>
 +
 +#include <xc_bitops.h>
 +
