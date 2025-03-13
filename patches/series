@@ -37,7 +37,7 @@
 # XenServer build system integration
 #
 build-tweaks.patch # Tweak version string, start-of-day banner and changeset
-autoconf-libjson.patch
+# autoconf-libjson.patch
 
 configure-build.patch # Configuration files for the build, including cached ./configure
 xenserver-configuration.patch
