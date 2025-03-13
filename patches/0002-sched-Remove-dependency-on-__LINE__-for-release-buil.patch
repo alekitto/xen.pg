@@ -30,7 +30,7 @@ index 037c83fda2..3948c937e1 100644
          if ( count_args(__VA_ARGS__) == 0 )                         \
 -            printk(XENLOG_ERR "domain_crash called from %s:%d\n",   \
 -                   __FILE__, __LINE__);                             \
-+            print_domain_crash();                             \
++            print_domain_crash()                                    \
          else                                                        \
              printk(XENLOG_ERR __VA_ARGS__);                         \
          __domain_crash(d);                                          \
