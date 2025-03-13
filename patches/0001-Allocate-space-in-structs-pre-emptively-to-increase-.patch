@@ -187,3 +187,18 @@ index a77cb30bdb..44a93f19a7 100755
  def featureset_to_uint32s(fs, nr):
      """ Represent a featureset as a list of C-compatible uint32_t's """
 
+diff --git a/tools/misc/xen-cpuid.c b/tools/misc/xen-cpuid.c
+index 4c4593528d..bc59128ae7 100644
+--- a/tools/misc/xen-cpuid.c
++++ b/tools/misc/xen-cpuid.c
+@@ -37,6 +37,10 @@ static const struct {
+     { "CPUID 0x00000007:1.edx",     "7d1" },
+     { "MSR_ARCH_CAPS.lo",         "m10Al" },
+     { "MSR_ARCH_CAPS.hi",         "m10Ah" },
++    { "RESERVED1",                "resv1" },
++    { "RESERVED2",                "resv2" },
++    { "RESERVED3",                "resv3" },
++    { "RESERVED4",                "resv4" },
+ };
+
+ #define COL_ALIGN "24"
